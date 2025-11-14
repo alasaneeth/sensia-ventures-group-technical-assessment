@@ -17,5 +17,5 @@ pool.connect((err) => {
     console.log('Database connected successfully');
   }
 });
+module.exports = pool;
 
-module.exports = { pool };

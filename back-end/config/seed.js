@@ -5,7 +5,7 @@ const seed = async () => {
   try {
     console.log("Seeding started...");
 
-    // Password hashing
+    // Hash passwords
     const adminPassword = await bcrypt.hash("Admin@123", 10);
     const clientPassword = await bcrypt.hash("Client@123", 10);
 
@@ -25,7 +25,6 @@ const seed = async () => {
        ON CONFLICT (name) DO NOTHING
        RETURNING id`
     );
-
     const adminRoleId =
       adminRoleRes.rows.length > 0 ? adminRoleRes.rows[0].id : 1;
 
@@ -88,7 +87,6 @@ const seed = async () => {
     );
 
     console.log("✅ Seeder completed successfully!");
-
   } catch (error) {
     console.error("❌ Seeder error:", error);
   } finally {
