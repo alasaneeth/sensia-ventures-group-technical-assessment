@@ -5,9 +5,17 @@ const seed = async () => {
   try {
     console.log("Seeding started...");
 
+    // Create roles first
+    const roles = ["admin", "client"];
+    for(const role of roles){
+      await pool.query(
+        'INSERT INTO roles (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
+        [role]
+      );
+    }
+
     // Hash passwords
     const adminPassword = await bcrypt.hash("Admin@123", 10);
-    const clientPassword = await bcrypt.hash("Client@123", 10);
 
     // Insert ADMIN user
     const adminRes = await pool.query(
@@ -18,77 +26,61 @@ const seed = async () => {
     );
     const adminId = adminRes.rows[0].id;
 
-    // Insert ADMIN role
+    // Get role IDs
     const adminRoleRes = await pool.query(
-      `INSERT INTO roles (name)
-       VALUES ('admin')
-       ON CONFLICT (name) DO NOTHING
-       RETURNING id`
+      'SELECT id FROM roles WHERE name = $1',
+      ['admin']
     );
-    const adminRoleId =
-      adminRoleRes.rows.length > 0 ? adminRoleRes.rows[0].id : 1;
+    const adminRoleId = adminRoleRes.rows[0].id;
 
-    // Link ADMIN role
+    const clientRoleRes = await pool.query(
+      'SELECT id FROM roles WHERE name = $1',
+      ['client']
+    );
+    const clientRoleId = clientRoleRes.rows[0].id;
+
     await pool.query(
       `INSERT INTO user_roles (user_id, role_id)
-       VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
+       VALUES ($1, $2)`,
       [adminId, adminRoleId]
     );
 
-    // Full admin permissions
-    const features = ["products", "clients", "orders", "comments", "users"];
-    for (const feature of features) {
+   // handle user permissions based on user role 
+    const allFeatures = ["products", "clients", "orders", "comments", "users"];
+    for (const feature of allFeatures) {
       await pool.query(
         `INSERT INTO user_permissions
-         (user_id, feature, can_view, can_create, can_update, can_delete)
+         (role_id, feature, can_view, can_create, can_update, can_delete)
          VALUES ($1, $2, TRUE, TRUE, TRUE, TRUE)`,
-        [adminId, feature]
+        [adminRoleId, feature]  
       );
     }
 
-    // Insert CLIENT user
-    const clientRes = await pool.query(
-      `INSERT INTO users (username, email, password, is_active)
-       VALUES ($1, $2, $3, TRUE)
-       RETURNING id`,
-      ["client_user", "client@example.com", clientPassword]
-    );
-    const clientId = clientRes.rows[0].id;
+  
+    const clientAllowedFeatures = ["products", "orders", "comments"];
+    for (const feature of clientAllowedFeatures) {
+      await pool.query(
+        `INSERT INTO user_permissions
+         (role_id, feature, can_view, can_create, can_update, can_delete)
+         VALUES ($1, $2, TRUE, TRUE, TRUE, FALSE)`,
+        [clientRoleId, feature]  
+      );
+    }
 
-    // Insert CLIENT role
-    const clientRoleRes = await pool.query(
-      `INSERT INTO roles (name)
-       VALUES ('client')
-       ON CONFLICT (name) DO NOTHING
-       RETURNING id`
-    );
-    const clientRoleId =
-      clientRoleRes.rows.length > 0 ? clientRoleRes.rows[0].id : 2;
 
-    // Link CLIENT role
-    await pool.query(
-      `INSERT INTO user_roles (user_id, role_id)
-       VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [clientId, clientRoleId]
-    );
+    const clientDeniedFeatures = ["clients", "users"];
+    for (const feature of clientDeniedFeatures) {
+      await pool.query(
+        `INSERT INTO user_permissions
+         (role_id, feature, can_view, can_create, can_update, can_delete)
+         VALUES ($1, $2, FALSE, FALSE, FALSE, FALSE)`,
+        [clientRoleId, feature] 
+      );
+    }
 
-    // Limited permissions
-    await pool.query(
-      `INSERT INTO user_permissions
-       (user_id, feature, can_view, can_create, can_update, can_delete)
-       VALUES
-       ($1, 'clients', TRUE, FALSE, FALSE, FALSE),
-       ($1, 'orders', TRUE, TRUE, FALSE, FALSE),
-       ($1, 'products', TRUE, FALSE, FALSE, FALSE),
-       ($1, 'comments', TRUE, FALSE, FALSE, FALSE)`,
-      [clientId]
-    );
-
-    console.log("✅ Seeder completed successfully!");
+    console.log("Seeder completed successfully!");
   } catch (error) {
-    console.error("❌ Seeder error:", error);
+    console.error("Seeder error:", error);
   } finally {
     pool.end();
   }

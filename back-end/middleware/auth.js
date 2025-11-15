@@ -17,7 +17,7 @@ const authenticateToken = async (req, res, next) => {
     
     // Get user from database with roles
     const userResult = await query(`
-      SELECT u.*, array_agg(r.name) as roles
+      SELECT u.*, array_agg(r.name) as roles, array_agg(r.id) as role_ids
       FROM users u
       LEFT JOIN user_roles ur ON u.id = ur.user_id
       LEFT JOIN roles r ON ur.role_id = r.id
@@ -32,16 +32,23 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Get user permissions
-    const permissionsResult = await query(`
-      SELECT feature, can_view, can_create, can_update, can_delete
-      FROM user_permissions 
-      WHERE user_id = $1
-    `, [decoded.userId]);
+    // Get user permissions based on role_ids
+    const user = userResult.rows[0];
+    let permissions = [];
+
+    if (user.role_ids && user.role_ids[0]) {
+      const permissionsResult = await query(`
+        SELECT feature, can_view, can_create, can_update, can_delete
+        FROM user_permissions 
+        WHERE role_id = ANY($1)
+      `, [user.role_ids]);
+
+      permissions = permissionsResult.rows;
+    }
 
     req.user = {
-      ...userResult.rows[0],
-      permissions: permissionsResult.rows
+      ...user,
+      permissions: permissions
     };
 
     next();

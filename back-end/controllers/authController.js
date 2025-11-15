@@ -12,7 +12,7 @@ class AuthController {
         return validationError(res, errors.array());
       }
 
-      const { username, email, password } = req.body;
+      const { username, email, password, phoneNo, address } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findByEmail(email);
@@ -21,7 +21,7 @@ class AuthController {
       }
 
       // Create user
-      const user = await User.create({ username, email, password });
+      const user = await User.create({ username, email, password, phoneNo, address });
 
       successResponse(res, 'User registered successfully', { user }, 201);
     } catch (error) {
@@ -52,7 +52,7 @@ class AuthController {
         return errorResponse(res, 'Invalid credentials', 401);
       }
 
-      // Get user permissions
+      // Get user with permissions (uses role-based permissions now)
       const userWithPermissions = await User.findById(user.id);
 
       // Generate token

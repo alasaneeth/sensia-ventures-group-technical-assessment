@@ -4,21 +4,40 @@ const bcrypt = require('bcryptjs');
 class User {
   // Create new user
   static async create(userData) {
-    const { username, email, password } = userData;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const result = await query(
-      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email, is_active, created_at',
-      [username, email, hashedPassword]
-    );
-    
-    return result.rows[0];
+    try {
+      const { username, email, password, phoneNo, address } = userData;
+      
+      // Validate required fields
+      if (!username || !email || !password) {
+        throw new Error('Missing required fields');
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Insert user
+      const result = await query(
+        'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email, is_active, created_at',
+        [username, email, hashedPassword]
+      );
+
+      const user_id = result.rows[0].id;
+
+      await query(
+        'INSERT INTO clients (user_id, name, email, phone, address) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, name, email, phone, address',
+        [user_id, username, email, phoneNo, address]
+      );
+
+      return userData;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Error registering user');
+    }
   }
 
   // Find user by email
   static async findByEmail(email) {
     const result = await query(
-      `SELECT u.*, array_agg(r.name) as roles
+      `SELECT u.*, array_agg(r.name) as roles, array_agg(r.id) as role_ids
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
@@ -33,7 +52,7 @@ class User {
   // Find user by ID with roles and permissions
   static async findById(id) {
     const userResult = await query(
-      `SELECT u.*, array_agg(r.name) as roles
+      `SELECT u.*, array_agg(r.name) as roles, array_agg(r.id) as role_ids
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
@@ -44,21 +63,30 @@ class User {
 
     if (userResult.rows.length === 0) return null;
 
-    const permissionsResult = await query(
-      'SELECT feature, can_view, can_create, can_update, can_delete FROM user_permissions WHERE user_id = $1',
-      [id]
-    );
+    // Get permissions based on role_ids
+    const user = userResult.rows[0];
+    let permissions = [];
+
+    if (user.role_ids && user.role_ids[0]) {
+      const permissionsResult = await query(
+        `SELECT feature, can_view, can_create, can_update, can_delete 
+         FROM user_permissions 
+         WHERE role_id = ANY($1)`,
+        [user.role_ids]
+      );
+      permissions = permissionsResult.rows;
+    }
 
     return {
-      ...userResult.rows[0],
-      permissions: permissionsResult.rows
+      ...user,
+      permissions: permissions
     };
   }
 
   // Get all users
   static async findAll() {
     const result = await query(
-      `SELECT u.*, array_agg(r.name) as roles
+      `SELECT u.*, array_agg(r.name) as roles, array_agg(r.id) as role_ids
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
@@ -113,22 +141,22 @@ class User {
     }
   }
 
-  // Update user permissions
-  static async updatePermissions(userId, permissions) {
+  // Update role permissions (now at role level instead of user level)
+  static async updateRolePermissions(roleId, permissions) {
     const client = await getClient();
     
     try {
       await client.query('BEGIN');
 
-      // Remove existing permissions
-      await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]);
+      // Remove existing permissions for this role
+      await client.query('DELETE FROM user_permissions WHERE role_id = $1', [roleId]);
 
       // Add new permissions
       for (const perm of permissions) {
         await client.query(
-          `INSERT INTO user_permissions (user_id, feature, can_view, can_create, can_update, can_delete) 
+          `INSERT INTO user_permissions (role_id, feature, can_view, can_create, can_update, can_delete) 
            VALUES ($1, $2, $3, $4, $5, $6)`,
-          [userId, perm.feature, perm.can_view, perm.can_create, perm.can_update, perm.can_delete]
+          [roleId, perm.feature, perm.can_view, perm.can_create, perm.can_update, perm.can_delete]
         );
       }
 
@@ -140,6 +168,16 @@ class User {
     } finally {
       client.release();
     }
+  }
+
+  // Get permissions by role
+  static async getPermissionsByRole(roleId) {
+    const result = await query(
+      'SELECT feature, can_view, can_create, can_update, can_delete FROM user_permissions WHERE role_id = $1',
+      [roleId]
+    );
+    
+    return result.rows;
   }
 
   // Check password

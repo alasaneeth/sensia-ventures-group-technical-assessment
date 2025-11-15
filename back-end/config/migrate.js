@@ -32,23 +32,11 @@ const migrate = async () => {
       );
     `);
 
-    // PERMISSIONS MASTER TABLE
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS permissions (
-        id SERIAL PRIMARY KEY,
-        feature VARCHAR(50) NOT NULL,
-        can_view BOOLEAN DEFAULT FALSE,
-        can_create BOOLEAN DEFAULT FALSE,
-        can_update BOOLEAN DEFAULT FALSE,
-        can_delete BOOLEAN DEFAULT FALSE
-      );
-    `);
-
     // USER-SPECIFIC PERMISSIONS
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_permissions (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
         feature VARCHAR(50) NOT NULL,
         can_view BOOLEAN DEFAULT FALSE,
         can_create BOOLEAN DEFAULT FALSE,
@@ -61,6 +49,7 @@ const migrate = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clients (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
         name VARCHAR(100) NOT NULL,
         email VARCHAR(100),
         phone VARCHAR(20),
