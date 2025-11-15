@@ -7,4 +7,6 @@ const Comment = require('./Comment');
 module.exports = {
   User,
   Client,
+  Product,
+  Order
 };
