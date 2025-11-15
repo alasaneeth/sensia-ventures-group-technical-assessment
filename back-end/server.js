@@ -24,7 +24,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-
+app.use('/api/users', userRoutes);
+app.use('/api/clients', clientRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {
