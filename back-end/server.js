@@ -28,6 +28,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/comments', commentRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {
