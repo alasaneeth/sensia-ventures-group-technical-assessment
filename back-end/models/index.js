@@ -5,5 +5,6 @@ const Order = require('./Order');
 const Comment = require('./Comment');
 
 module.exports = {
-  User
+  User,
+  Client,
 };
