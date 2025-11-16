@@ -116,14 +116,19 @@ class Order {
   }
 
   // Get all orders with pagination and filters
-  static async findAll({ page = 1, limit = 10, client_id, status }) {
+  static async findAll({ page = 1, limit = 10, client_id, status, userRole, userId }) {
     const offset = (page - 1) * limit;
 
     let whereClause = '';
     let queryParams = [limit, offset];
     let paramCount = 2;
 
-    if (client_id) {
+    // If user is not admin, only show their orders
+    if (userRole === 'client') {
+      paramCount++;
+      whereClause += ` ${whereClause ? 'AND' : 'WHERE'} o.client_id = $${paramCount}`;
+      queryParams.push(client_id);
+    } else if (client_id) {
       paramCount++;
       whereClause += ` ${whereClause ? 'AND' : 'WHERE'} o.client_id = $${paramCount}`;
       queryParams.push(client_id);
@@ -190,6 +195,30 @@ class Order {
     );
     
     return result.rows[0];
+  }
+
+  // Delete order
+  static async delete(id) {
+    const client = await getClient();
+    
+    try {
+      await client.query('BEGIN');
+
+      // Delete related records first
+      await client.query('DELETE FROM order_payments WHERE order_id = $1', [id]);
+      await client.query('DELETE FROM order_items WHERE order_id = $1', [id]);
+      
+      // Delete the order
+      const result = await client.query('DELETE FROM orders WHERE id = $1 RETURNING *', [id]);
+
+      await client.query('COMMIT');
+      return result.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

@@ -10,6 +10,7 @@ const { Option } = Select;
 
 const Orders = () => {
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const { orders, loading, pagination } = useSelector((state) => state.orders);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
@@ -29,11 +30,11 @@ const Orders = () => {
       dataIndex: 'id',
       key: 'id',
     },
-    {
+    ...(user?.role === 'admin' ? [{
       title: 'Client',
       dataIndex: 'client_name',
       key: 'client_name',
-    },
+    }] : []),
     {
       title: 'Total Amount',
       dataIndex: 'total_amount',
@@ -49,6 +50,7 @@ const Orders = () => {
           value={status}
           onChange={(value) => handleStatusChange(record.id, value)}
           style={{ width: 120 }}
+          disabled={user?.role === 'client'} // Clients cannot change order status
         >
           <Option value="pending">Pending</Option>
           <Option value="confirmed">Confirmed</Option>
@@ -58,11 +60,11 @@ const Orders = () => {
         </Select>
       ),
     },
-    {
+    ...(user?.role === 'admin' ? [{
       title: 'Created By',
       dataIndex: 'created_by_name',
       key: 'created_by_name',
-    },
+    }] : []),
     {
       title: 'Created At',
       dataIndex: 'created_at',
@@ -82,21 +84,28 @@ const Orders = () => {
             View
           </Button>
           
-          <Button 
-            type="link" 
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            Edit
-          </Button>
-          <Button 
-            type="link" 
-            danger 
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-          >
-            Delete
-          </Button>
+          {/* Only show edit button for admin or if order belongs to client */}
+          {(user?.role === 'admin' || record.client_id === user?.client_id) && (
+            <Button 
+              type="link" 
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              Edit
+            </Button>
+          )}
+          
+          {/* Only show delete button for admin or if order belongs to client */}
+          {(user?.role === 'admin' || record.client_id === user?.client_id) && (
+            <Button 
+              type="link" 
+              danger 
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+            >
+              Delete
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -154,7 +163,9 @@ const Orders = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Orders</h1>
+        <h1 className="text-2xl font-bold text-gray-800">
+          {user?.role === 'admin' ? 'All Orders' : 'My Orders'}
+        </h1>
         <Button 
           type="primary" 
           onClick={() => setIsModalVisible(true)}
@@ -211,9 +222,11 @@ const Orders = () => {
               <div>
                 <strong>Order ID:</strong> {viewingOrder.id}
               </div>
-              <div>
-                <strong>Client:</strong> {viewingOrder.client_name}
-              </div>
+              {user?.role === 'admin' && (
+                <div>
+                  <strong>Client:</strong> {viewingOrder.client_name}
+                </div>
+              )}
               <div>
                 <strong>Total Amount:</strong> AED {parseFloat(viewingOrder.total_amount).toFixed(2)}
               </div>
@@ -223,9 +236,11 @@ const Orders = () => {
                   {viewingOrder.status}
                 </Tag>
               </div>
-              <div>
-                <strong>Created By:</strong> {viewingOrder.created_by_name}
-              </div>
+              {user?.role === 'admin' && (
+                <div>
+                  <strong>Created By:</strong> {viewingOrder.created_by_name}
+                </div>
+              )}
               <div>
                 <strong>Created At:</strong> {new Date(viewingOrder.created_at).toLocaleString()}
               </div>

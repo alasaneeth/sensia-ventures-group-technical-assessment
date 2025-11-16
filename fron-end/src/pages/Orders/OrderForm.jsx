@@ -251,6 +251,7 @@ const OrderForm = ({ order, onCancel, onSuccess }) => {
         rules={[{ required: true, message: 'Please select a client!' }]}
       >
         <Select placeholder="Select client">
+
           {clients.map(client => (
             <Option key={client.id} value={client.id}>
               {client.name} - {client.email}
