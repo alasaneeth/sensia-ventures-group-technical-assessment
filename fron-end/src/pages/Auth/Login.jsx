@@ -20,7 +20,12 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard')
+      // Add a small delay to allow the toast to be visible
+      const timer = setTimeout(() => {
+        navigate('/dashboard')
+      }, 1500) // 1.5 seconds delay
+      
+      return () => clearTimeout(timer)
     }
   }, [isAuthenticated, navigate])
 
