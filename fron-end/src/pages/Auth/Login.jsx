@@ -1,9 +1,10 @@
 // src/pages/Auth/Login.jsx
 import React, { useEffect } from 'react'
-import { Form, Input, Button, Card, message } from 'antd'
+import { Form, Input, Button, Card } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { login, clearError } from '../../store/slices/authSlice'
 
 const Login = () => {
@@ -13,7 +14,7 @@ const Login = () => {
 
   useEffect(() => {
     if (error) {
-      message.error(error)
+      toast.error(error)
       dispatch(clearError())
     }
   }, [error, dispatch])
