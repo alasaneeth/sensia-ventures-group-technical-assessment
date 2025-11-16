@@ -1,5 +1,6 @@
 const { query, getClient } = require('../config/db');
 const bcrypt = require('bcryptjs');
+const UserRoles = require("../enums/userRole");
 
 class User {
   // Create new user
@@ -21,13 +22,21 @@ class User {
       );
 
       const user_id = result.rows[0].id;
-
-      await query(
+  
+    await query(
         'INSERT INTO clients (user_id, name, email, phone, address) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, name, email, phone, address',
         [user_id, username, email, phoneNo, address]
       );
 
-      return userData;
+     await query(
+      `INSERT INTO user_roles (user_id, role_id)
+       VALUES ($1, $2)`,
+      [user_id, UserRoles.CLIENT]
+    );
+
+
+      return result;
+
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Error registering user');
