@@ -24,16 +24,12 @@ const Sidebar = () => {
   const { user } = useSelector((state) => state.auth)
   const [collapsed, setCollapsed] = useState(false)
 
-  const menuItems = [
+  // Base menu items
+  const baseMenuItems = [
     {
       key: '/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-    },
-    {
-      key: '/clients',
-      icon: <TeamOutlined />,
-      label: 'Clients',
     },
     {
       key: '/products',
@@ -50,12 +46,34 @@ const Sidebar = () => {
       icon: <CommentOutlined />,
       label: 'Comments',
     },
+  ]
+
+  // Admin-only menu items
+  const adminMenuItems = [
+    {
+      key: '/clients',
+      icon: <TeamOutlined />,
+      label: 'Clients',
+    },
     {
       key: '/users',
       icon: <UserOutlined />,
       label: 'Users',
     },
   ]
+
+  // Combine menu items based on user role
+  const getMenuItems = () => {
+    const isClient = user?.roles?.includes('client')
+    
+    if (isClient) {
+      return baseMenuItems
+    } else {
+      return [...baseMenuItems, ...adminMenuItems]
+    }
+  }
+
+  const menuItems = getMenuItems()
 
   const userMenuItems = [
     {
