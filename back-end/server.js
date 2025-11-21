@@ -1,79 +1,37 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-require('dotenv').config();
+import dotenv from "dotenv";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+import loggingService from "./services/logging.js";
 
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const clientRoutes = require('./routes/clients');
-const productRoutes = require('./routes/products');
-const orderRoutes = require('./routes/orders');
-const commentRoutes = require('./routes/comments');
+async function main() {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const { pool } = require('./config/db');
-
-const app = express();
-
-// Middleware
-app.use(helmet());
-app.use(cors());
-app.use(morgan('combined'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/comments', commentRoutes);
-
-// Health check
-app.get('/health', async (req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    res.status(200).json({ 
-      status: 'OK', 
-      message: 'Server and database are running',
-      timestamp: new Date().toISOString()
+    // Read the config file
+    dotenv.config({
+        path: join(__dirname, "./.env"),
     });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      message: 'Database connection failed' 
+
+    // Lazy import
+    const { connectDB } = await import("./config/sequelize.js");
+    // Connect to the database
+    connectDB();
+
+    // Get the app
+    const app = await import("./app.js");
+
+    app.default.listen(3000, () => {});
+
+    // Handle unhandled promise rejection
+    process.on("unhandledRejection", function (err) {
+        console.log(err);
+        // log it to the logs file
+        loggingService.emit("unexpected-rejection", { error: err });
     });
-  }
-});
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    success: false, 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'production' ? {} : err.message 
-  });
-});
+    process.on("uncaughtException", function (err) {
+        loggingService.emit("unexpected-rejection", { error: err });
+        console.log(err); // this will not crash the app
+    });
+}
 
-// 404 handler - MUST be the last middleware
-app.use((req, res, next) => {
-  res.status(404).json({ 
-    success: false, 
-    message: `Route ${req.method} ${req.originalUrl} not found` 
-  });
-});
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down gracefully...');
-  await pool.end();
-  process.exit(0);
-});
+main();
