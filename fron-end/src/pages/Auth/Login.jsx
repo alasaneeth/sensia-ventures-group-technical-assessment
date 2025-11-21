@@ -1,102 +1,204 @@
-// src/pages/Auth/Login.jsx
-import React, { useEffect } from 'react'
-import { Form, Input, Button, Card } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, Link } from 'react-router-dom'
-import { toast } from 'react-toastify'
-import { login, clearError } from '../../store/slices/authSlice'
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import {
+    Form,
+    Input,
+    Button,
+    Card,
+    Typography,
+    message,
+    Spin,
+    Checkbox,
+} from "antd";
+import {
+    UserOutlined,
+    LockOutlined,
+    EyeInvisibleOutlined,
+    EyeTwoTone,
+} from "@ant-design/icons";
+import { getSession, login as loginAPI } from "../../api/auth";
+import { login, setSession } from "../../redux/stateSlices/auth";
 
-const Login = () => {
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const { loading, error, isAuthenticated } = useSelector((state) => state.auth)
+const { Title, Text } = Typography;
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error)
-      dispatch(clearError())
+function Login() {
+    const [form] = Form.useForm();
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [loadingAuth, setLoadingAuth] = useState(true);
+    const [loading, setLoading] = useState(false);
+
+    const { token } = useSelector((state) => state.auth);
+
+    // Validate the session if exsist. or keep in the same page
+    useEffect(() => {
+        console.log("running");
+        async function retrieveSession() {
+            try {
+                if (!token) {
+                    setLoadingAuth(false);
+                    return;
+                }
+
+                // If user is already authenticated, redirect to home page
+
+                const session = await getSession(token);
+                if (typeof session === "string") {
+                    message.error(session);
+                    return;
+                }
+
+                dispatch(
+                    setSession({
+                        accessToken: session.token,
+                        user: session.user,
+                    })
+                );
+
+                if (session.user.role === 1) navigate("/");
+                if (session.user.role === 2) navigate("/offers-exportation");
+                if (session.user.role === 3) navigate("/orders/add");
+            } catch (err) {
+                message.error("Something went wrong");
+            } finally {
+                setLoadingAuth(false);
+            }
+        }
+
+        retrieveSession();
+    }, [token, navigate]);
+
+    async function handleSubmit(values) {
+        try {
+            setLoading(true);
+            const response = await loginAPI(values.username, values.password);
+
+            if (typeof response === "string") {
+                message.error(response);
+                return;
+            }
+
+            dispatch(login(response));
+
+            message.success("Login successfully");
+            navigate("/");
+        } catch (error) {
+            message.error("Something went wrong");
+        } finally {
+            setLoading(false);
+        }
     }
-  }, [error, dispatch])
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Add a small delay to allow the toast to be visible
-      const timer = setTimeout(() => {
-        navigate('/dashboard')
-      }, 1500) // 1.5 seconds delay
-      
-      return () => clearTimeout(timer)
-    }
-  }, [isAuthenticated, navigate])
-
-  const onFinish = (values) => {
-    dispatch(login(values))
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <Card className="w-full max-w-md shadow-lg">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your account</p>
-        </div>
-
-        <Form
-          name="login"
-          onFinish={onFinish}
-          autoComplete="off"
-          layout="vertical"
-        >
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[
-              { required: true, message: 'Please input your email!' },
-              { type: 'email', message: 'Please enter a valid email!' },
-            ]}
-          >
-            <Input 
-              prefix={<UserOutlined />} 
-              placeholder="Email" 
-              size="large"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Password"
-              size="large"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              className="w-full"
-              size="large"
+    if (loadingAuth)
+        return (
+            <div
+                style={{
+                    display: "flex",
+                    height: "100dvh",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
             >
-              Sign In
-            </Button>
-          </Form.Item>
-        </Form>
+                <Spin size="large" />
+            </div>
+        );
 
-        <div className="text-center">
-          <span className="text-gray-600">Don't have an account? </span>
-          <Link to="/register" className="text-blue-600 hover:text-blue-800">
-            Sign up
-          </Link>
+    return (
+        <div
+            style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100vh",
+                background: "#f0f2f5",
+            }}
+        >
+            <Card
+                style={{
+                    width: 400,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    borderRadius: "8px",
+                }}
+            >
+                <div style={{ textAlign: "center", marginBottom: "24px" }}>
+                    <Title level={2} style={{ marginBottom: "8px" }}>
+                        Euro Star
+                    </Title>
+                    <Text type="secondary">Sign in to your account</Text>
+                </div>
+
+                <Spin spinning={loadingAuth}>
+                    <Form
+                        form={form}
+                        name="login"
+                        layout="vertical"
+                        onFinish={handleSubmit}
+                        initialValues={{ remember: true }}
+                    >
+                        <Form.Item
+                            name="username"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: "Please enter your username!",
+                                },
+                            ]}
+                        >
+                            <Input
+                                prefix={
+                                    <UserOutlined
+                                        style={{ color: "rgba(0,0,0,.25)" }}
+                                    />
+                                }
+                                placeholder="Username"
+                                size="large"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="password"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: "Please enter your password!",
+                                },
+                            ]}
+                        >
+                            <Input.Password
+                                prefix={
+                                    <LockOutlined
+                                        style={{ color: "rgba(0,0,0,.25)" }}
+                                    />
+                                }
+                                placeholder="Password"
+                                size="large"
+                                iconRender={(visible) =>
+                                    visible ? (
+                                        <EyeTwoTone />
+                                    ) : (
+                                        <EyeInvisibleOutlined />
+                                    )
+                                }
+                            />
+                        </Form.Item>
+
+                        <Form.Item>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                size="large"
+                                block
+                                loading={loadingAuth}
+                            >
+                                Sign In
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </Spin>
+            </Card>
         </div>
-      </Card>
-    </div>
-  )
+    );
 }
 
-export default Login
+export default Login;
