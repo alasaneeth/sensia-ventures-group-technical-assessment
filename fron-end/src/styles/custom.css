@@ -1,0 +1,194 @@
+/* Color variables */
+:root {
+  --color-dark: #30362F;
+  --color-primary: #FF9500;
+  --color-primary-hover: #FFA616;
+  --color-light: #FFFBDB;
+}
+
+/* 
+  Icon button styles
+  These classes are used for navigation buttons and action buttons
+  that need consistent hover effects throughout the application
+*/
+.icon-btn {
+  color: var(--color-dark);
+  transition: color 0.3s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  color: var(--color-primary-hover);
+}
+
+/* 
+  Navigation link styles
+  Used for sidebar navigation items to provide consistent
+  hover and active states
+*/
+.nav-link {
+  color: var(--color-dark);
+  transition: color 0.3s ease, background-color 0.3s ease;
+  text-decoration: none;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--color-primary-hover);
+  background-color: rgba(255, 149, 0, 0.1);
+}
+
+.nav-link .anticon {
+  margin-right: 8px;
+}
+
+/* 
+  Sidebar styles
+  Used for controlling sidebar appearance and transitions
+*/
+.sidebar {
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+}
+
+.sidebar.mobile {
+  position: fixed;
+  z-index: 1000;
+}
+
+/* 
+  Custom styles for NavLinks in sidebar
+  Remove underlines from links and maintain this style on hover/active states
+*/
+.ant-menu a {
+  text-decoration: none !important;
+}
+
+/* 
+  Custom styles for disabled elements
+  These styles apply to all disabled inputs, buttons, and other form elements
+*/
+[disabled], .ant-input[disabled], .ant-select-disabled, .ant-picker-disabled, .ant-btn[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+}
+
+.ant-input[disabled], .ant-select-disabled .ant-select-selector, .ant-picker-disabled {
+  background-color: #f5f5f5 !important;
+  color: rgba(0, 0, 0, 0.5) !important;
+  border-color: #d9d9d9 !important;
+}
+
+.ant-btn[disabled] {
+  background-color: var(--color-primary-hover) !important;
+  color: white !important;
+  opacity: 0.5 !important;
+}
+
+/* 
+  Custom styles for Ant Design components
+  These override default Ant Design styles to match our color scheme
+*/
+.ant-menu-item:hover,
+.ant-menu-item-selected {
+  color: var(--color-primary-hover) !important;
+}
+
+.ant-menu-submenu-title:hover {
+  color: var(--color-primary-hover) !important;
+}
+
+.ant-menu-item-selected {
+  background-color: rgba(255, 149, 0, 0.1) !important;
+}
+
+.react-flow__handle {
+  width: 20px !important; 
+  height: 20px !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2 !important; 
+}
+
+/* Table header styling */
+.ant-table-thead > tr > th {
+  white-space: nowrap;
+  padding: 12px 16px;
+  background-color: #f7f7f7;
+}
+
+/* Table cell styling - allow wrapping for content */
+/* .ant-table-cell {
+  white-space: normal;
+  word-break: break-word;
+  padding: 12px 16px;
+  vertical-align: top;
+} */
+
+/* Orders table specific styling */
+/* .orders-table .ant-table-cell div {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+} */
+
+/* Ensure address fields can display more content */
+/* .orders-table .ant-table-cell[data-column-key="client_address_1"] div,
+.orders-table .ant-table-cell[data-column-key="client_address_2"] div {
+  max-width: 300px;
+} */
+
+/* Make AntD message always float above app chrome */
+.ant-message {
+  z-index: 20000 !important;  /* well above your .sidebar z-index:1000 */
+  /* optional: if a fixed header overlaps the top area */
+  top: 72px !important;       /* match message.config({ top: 72 }) */
+}
+
+/* Fix for AG Grid filter popup transparency */
+.ag-popup {
+  background-color: white !important;
+}
+
+.ag-popup-child {
+  background-color: white !important;
+}
+
+.ag-filter-wrapper {
+  background-color: white !important;
+}
+
+.ag-filter-toolpanel-header,
+.ag-filter-toolpanel-search,
+.ag-filter-body-wrapper {
+  background-color: white !important;
+}
+
+/* RBAC Table Row Styling */
+.rbac-parent-row {
+  background-color: #f5f5f5 !important;
+}
+
+.rbac-parent-row:hover {
+  background-color: #e8e8e8 !important;
+}
+
+.rbac-child-row {
+  background-color: #fafafa !important;
+}
+
+.rbac-child-row:hover {
+  background-color: #f0f0f0 !important;
+}
